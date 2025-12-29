@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Application Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        width: 95%;
+        max-width: 1400px;
+        height: 90vh;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        display: flex;
+        overflow: hidden;
+      }
+      .auth-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+      }
+      .auth-box {
+        background: white;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 400px;
+      }
+      .auth-box h2 {
+        margin-bottom: 30px;
+        color: #667eea;
+        text-align: center;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .btn {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .btn:hover {
+        background: #5568d3;
+      }
+      .btn-secondary {
+        background: #6c757d;
+        margin-top: 10px;
+      }
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 14px;
+        width: auto;
+      }
+      .chat-container {
+        display: none;
+        width: 100%;
+        height: 100%;
+      }
+      .chat-container.active {
+        display: flex;
+      }
+      .sidebar {
+        width: 320px;
+        background: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-header {
+        padding: 20px;
+        background: #667eea;
+        color: white;
+      }
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 15px;
+      }
+      .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #667eea;
+        flex-shrink: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+      }
+      .tab {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .tab.active {
+        background: white;
+        color: #667eea;
+      }
+      .search-box {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .user-list,
+      .group-list {
+        flex: 1;
+        overflow-y: auto;
+      }
+      .user-item,
+      .group-item {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .user-item:hover,
+      .group-item:hover {
+        background: #e9ecef;
+      }
+      .user-item.active,
+      .group-item.active {
+        background: #e7f1ff;
+      }
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6c757d;
+      }
+      .status-indicator.online {
+        background: #28a745;
+      }
+      .main-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-header {
+        padding: 20px;
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .chat-header h3 {
+        flex: 1;
+      }
+      .chat-status {
+        font-size: 12px;
+        color: #6c757d;
+      }
+      .chat-status.typing {
+        color: #667eea;
+        font-style: italic;
+      }
+      .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fa;
+      }
+      .message {
+        margin-bottom: 15px;
+        display: flex;
+        gap: 10px;
+      }
+      .message.own {
+        flex-direction: row-reverse;
+      }
+      .message-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        flex-shrink: 0;
+      }
+      .message-content {
+        max-width: 60%;
+      }
+      .message-sender {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+      .message-bubble {
+        padding: 10px 15px;
+        border-radius: 12px;
+        background: white;
+        word-wrap: break-word;
+      }
+      .message.own .message-bubble {
+        background: #667eea;
+        color: white;
+      }
+      .message-time {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 4px;
+      }
+      .message-input-container {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #dee2e6;
+      }
+      .message-input-wrapper {
+        display: flex;
+        gap: 10px;
+      }
+      .message-input {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 25px;
+        font-size: 14px;
+        resize: none;
+      }
+      .message-input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .send-btn {
+        padding: 12px 24px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .send-btn:hover {
+        background: #5568d3;
+      }
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: #6c757d;
+      }
+      .error-message {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .success-message {
+        color: #28a745;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal.active {
+        display: flex;
+      }
+      .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .close-modal {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #6c757d;
+        line-height: 1;
+      }
+      .member-select {
+        max-height: 300px;
+        overflow-y: auto;
+        margin: 20px 0;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .member-item {
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.2s;
+      }
+      .member-item:hover {
+        background: #f8f9fa;
+      }
+      .member-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+      .group-badge {
+        background: #667eea;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-left: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="authContainer" class="auth-container">
+        <div class="auth-box">
+          <h2>Welcome to Chat App</h2>
+          <div id="loginForm">
+            <div class="form-group">
+              <label>Email</label
+              ><input
+                type="email"
+                id="loginEmail"
+                placeholder="Enter your email"
+              />
+            </div>
+            <div class="form-group">
+              <label>Password</label
+              ><input
+                type="password"
+                id="loginPassword"
+                placeholder="Enter your password"
+              />
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+            <button class="btn btn-secondary" onclick="showRegister()">
+              Create Account
+            </button>
+            <div id="loginError" class="error-message"></div>
+          </div>
+          <div id="registerForm" style="display: none">
+            <div class="form-group">
+              <label>Username</label
+              ><input
+                type="text"
+                id="registerUsername"
+                placeholder="Choose a username"
+              />
+            </div>
+            <div class="form-group">
+              <label>Email</label
+              ><input
+                type="email"
+                id="registerEmail"
+                placeholder="Enter your email"
+              />
+            </div>
+            <div class="form-group">
+              <label>Password</label
+              ><input
+                type="password"
+                id="registerPassword"
+                placeholder="Choose a password"
+              />
+            </div>
+            <button class="btn" onclick="register()">Register</button>
+            <button class="btn btn-secondary" onclick="showLogin()">
+              Back to Login
+            </button>
+            <div id="registerError" class="error-message"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="chatContainer" class="chat-container">
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <div class="user-info">
+              <div class="user-avatar" id="currentUserAvatar"></div>
+              <div>
+                <div style="font-weight: 600" id="currentUsername"></div>
+                <div style="font-size: 12px; opacity: 0.9">Online</div>
+              </div>
+            </div>
+            <div class="tabs">
+              <button class="tab active" onclick="switchTab('users')">
+                Users
+              </button>
+              <button class="tab" onclick="switchTab('groups')">Groups</button>
+            </div>
+          </div>
+          <div class="search-box">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search..."
+              onkeyup="searchItems()"
+            />
+          </div>
+          <div id="usersTab" class="user-list"></div>
+          <div id="groupsTab" class="group-list" style="display: none"></div>
+          <div style="padding: 15px; border-top: 1px solid #dee2e6">
+            <button
+              class="btn"
+              id="createGroupBtn"
+              style="display: none"
+              onclick="showCreateGroupModal()"
+            >
+              + Create Group
+            </button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+          </div>
+        </div>
+
+        <div class="main-chat">
+          <div id="emptyChat" class="empty-state">
+            <h3>Select a conversation</h3>
+            <p>Choose a user or group to start chatting</p>
+          </div>
+          <div
+            id="activeChat"
+            style="display: none; flex-direction: column; height: 100%"
+          >
+            <div class="chat-header">
+              <div class="user-avatar" id="activeChatAvatar"></div>
+              <div style="flex: 1">
+                <h3 id="activeChatName"></h3>
+                <div class="chat-status" id="activeChatStatus"></div>
+              </div>
+              <button
+                class="btn btn-secondary btn-small"
+                id="leaveGroupBtn"
+                style="display: none"
+                onclick="leaveGroup()"
+              >
+                Leave Group
+              </button>
+            </div>
+            <div class="messages-container" id="messagesContainer"></div>
+            <div class="message-input-container">
+              <div class="message-input-wrapper">
+                <textarea
+                  class="message-input"
+                  id="messageInput"
+                  placeholder="Type a message..."
+                  rows="1"
+                  onkeydown="handleKeypress(event)"
+                  oninput="handleTyping()"
+                ></textarea
+                ><button class="send-btn" onclick="sendMessage()">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="groupModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Create New Group</h3>
+          <button class="close-modal" onclick="closeGroupModal()">
+            &times;
+          </button>
+        </div>
+        <div class="form-group">
+          <label>Group Name</label>
+          <input type="text" id="groupName" placeholder="Enter group name" />
+        </div>
+        <label style="display: block; margin: 15px 0 10px; font-weight: 500"
+          >Select Members</label
+        >
+        <div class="member-select" id="memberSelect"></div>
+        <button class="btn" onclick="createGroup()">Create Group</button>
+        <div id="groupError" class="error-message"></div>
+        <div id="groupSuccess" class="success-message"></div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:3003/api";
+      const SOCKET_URL = "http://localhost:3003";
+      let socket,
+        currentUser,
+        token,
+        users = [],
+        groups = [],
+        onlineUsers = [],
+        activeChat,
+        activeChatType = "user",
+        typingTimeout;
+
+      async function register() {
+        const username = document.getElementById("registerUsername").value;
+        const email = document.getElementById("registerEmail").value;
+        const password = document.getElementById("registerPassword").value;
+        const errorEl = document.getElementById("registerError");
+        errorEl.textContent = "";
+        try {
+          const res = await fetch(`${API_URL}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, email, password }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            token = data.token;
+            currentUser = data.user;
+            localStorage.setItem("token", token);
+            initializeChat();
+          } else errorEl.textContent = data.error || "Registration failed";
+        } catch (e) {
+          errorEl.textContent = "Network error";
+        }
+      }
+
+      async function login() {
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        const errorEl = document.getElementById("loginError");
+        errorEl.textContent = "";
+        try {
+          const res = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            token = data.token;
+            currentUser = data.user;
+            localStorage.setItem("token", token);
+            initializeChat();
+          } else errorEl.textContent = data.error || "Login failed";
+        } catch (e) {
+          errorEl.textContent = "Network error";
+        }
+      }
+
+      async function logout() {
+        try {
+          await fetch(`${API_URL}/auth/logout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (e) {}
+        if (socket) socket.disconnect();
+        localStorage.removeItem("token");
+        token = null;
+        currentUser = null;
+        document.getElementById("chatContainer").classList.remove("active");
+        document.getElementById("authContainer").style.display = "flex";
+      }
+
+      function showRegister() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "block";
+      }
+      function showLogin() {
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+      }
+
+      async function initializeChat() {
+        document.getElementById("authContainer").style.display = "none";
+        document.getElementById("chatContainer").classList.add("active");
+        document.getElementById("currentUsername").textContent =
+          currentUser.username;
+        document.getElementById("currentUserAvatar").textContent =
+          currentUser.username.charAt(0).toUpperCase();
+        socket = io(SOCKET_URL, { auth: { token } });
+        setupSocketListeners();
+        await loadUsers();
+      }
+
+      function setupSocketListeners() {
+        socket.on("connect", () => console.log("Connected"));
+        socket.on("connection-success", (d) => console.log("Success:", d));
+        socket.on("online-users", (u) => {
+          onlineUsers = u;
+          updateUsersList();
+        });
+        socket.on("receive-message", (m) => {
+          if (
+            activeChat &&
+            activeChatType === "user" &&
+            m.sender._id === activeChat
+          ) {
+            displayMessage(m);
+            socket.emit("mark-read", { senderId: activeChat });
+          }
+        });
+        socket.on("sent-message", (m) => displayMessage(m));
+        socket.on("user-typing", (d) => {
+          if (activeChat === d.userId && activeChatType === "user") {
+            document.getElementById("activeChatStatus").textContent =
+              "typing...";
+            document.getElementById("activeChatStatus").classList.add("typing");
+          }
+        });
+        socket.on("user stop typing", (d) => {
+          if (activeChat === d.userId && activeChatType === "user")
+            updateChatStatus();
+        });
+        socket.on("group-created", (g) => {
+          console.log("Group created:", g);
+          loadGroups();
+        });
+        socket.on("receive-group-messsage", (m) => {
+          if (
+            activeChat &&
+            activeChatType === "group" &&
+            m.group === activeChat
+          )
+            displayMessage(m, true);
+        });
+        socket.on("group-user-typing", (d) => {
+          if (activeChat && activeChatType === "group") {
+            document.getElementById(
+              "activeChatStatus"
+            ).textContent = `${d.username} is typing...`;
+            document.getElementById("activeChatStatus").classList.add("typing");
+          }
+        });
+        socket.on("group-user-stop-typing", () => {
+          if (activeChatType === "group") updateChatStatus();
+        });
+        socket.on("error", (e) => console.error("Error:", e));
+      }
+
+      async function loadUsers() {
+        try {
+          const res = await fetch(`${API_URL}/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          users = data.users;
+          updateUsersList();
+        } catch (e) {
+          console.error("Error loading users:", e);
+        }
+      }
+
+      async function loadGroups() {
+        try {
+          const res = await fetch(`${API_URL}/groups`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          groups = data.groups;
+          updateGroupsList();
+        } catch (e) {
+          console.error("Error loading groups:", e);
+        }
+      }
+
+      function updateUsersList() {
+        const list = document.getElementById("usersTab");
+        list.innerHTML = "";
+        users.forEach((u) => {
+          const isOnline = onlineUsers.includes(u._id);
+          const item = document.createElement("div");
+          item.className = "user-item";
+          item.onclick = () => openChat(u._id, u.username, "user");
+          item.innerHTML = `<div class="user-avatar">${u.username
+            .charAt(0)
+            .toUpperCase()}</div><div style="flex: 1;"><div style="font-weight: 500;">${
+            u.username
+          }</div><div style="font-size: 12px; color: #6c757d;">${
+            u.email
+          }</div></div><div class="status-indicator ${
+            isOnline ? "online" : ""
+          }"></div>`;
+          list.appendChild(item);
+        });
+      }
+
+      function updateGroupsList() {
+        const list = document.getElementById("groupsTab");
+        list.innerHTML = "";
+        if (groups.length === 0) {
+          list.innerHTML =
+            '<div style="padding: 20px; text-align: center; color: #6c757d;">No groups yet. Create one to get started!</div>';
+        }
+        groups.forEach((g) => {
+          const item = document.createElement("div");
+          item.className = "group-item";
+          item.onclick = () => openChat(g._id, g.name, "group");
+          item.innerHTML = `<div class="user-avatar" style="background: #28a745;">G</div><div style="flex: 1;"><div style="font-weight: 500;">${g.name}</div><div style="font-size: 12px; color: #6c757d;">${g.members.length} members</div></div><div class="group-badge">GROUP</div>`;
+          list.appendChild(item);
+        });
+      }
+
+      async function openChat(chatId, chatName, type) {
+        activeChat = chatId;
+        activeChatType = type;
+        document.getElementById("emptyChat").style.display = "none";
+        document.getElementById("activeChat").style.display = "flex";
+        document.getElementById("activeChatName").textContent = chatName;
+        document.getElementById("activeChatAvatar").textContent = chatName
+          .charAt(0)
+          .toUpperCase();
+        document.getElementById("leaveGroupBtn").style.display =
+          type === "group" ? "block" : "none";
+        updateChatStatus();
+        document.getElementById("messagesContainer").innerHTML = "";
+        if (type === "user") {
+          await loadMessages(chatId);
+          socket.emit("mark-read", { senderId: chatId });
+        } else if (type === "group") {
+          await loadGroupMessages(chatId);
+        }
+      }
+
+      function updateChatStatus() {
+        const el = document.getElementById("activeChatStatus");
+        el.classList.remove("typing");
+        if (activeChatType === "user") {
+          el.textContent = onlineUsers.includes(activeChat)
+            ? "Online"
+            : "Offline";
+        } else {
+          const group = groups.find((g) => g._id === activeChat);
+          el.textContent = group
+            ? `${group.members.length} members`
+            : "Group Chat";
+        }
+      }
+
+      async function loadMessages(userId) {
+        try {
+          const res = await fetch(`${API_URL}/messages/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          data.messages.forEach((m) => displayMessage(m));
+        } catch (e) {
+          console.error("Error loading messages:", e);
+        }
+      }
+
+      async function loadGroupMessages(groupId) {
+        try {
+          const res = await fetch(`${API_URL}/groups/${groupId}/messages`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          data.messages.forEach((m) => displayMessage(m, true));
+        } catch (e) {
+          console.error("Error loading group messages:", e);
+        }
+      }
+
+      function displayMessage(msg, isGroup = false) {
+        const container = document.getElementById("messagesContainer");
+        const isOwn =
+          msg.sender._id === currentUser.id || msg.sender === currentUser.id;
+        const div = document.createElement("div");
+        div.className = `message ${isOwn ? "own" : ""}`;
+        const avatar = isOwn
+          ? currentUser.username.charAt(0).toUpperCase()
+          : msg.sender.username
+          ? msg.sender.username.charAt(0).toUpperCase()
+          : "U";
+        const time = new Date(msg.createdAt).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const senderName =
+          isGroup && !isOwn && msg.sender.username
+            ? `<div class="message-sender">${msg.sender.username}</div>`
+            : "";
+        div.innerHTML = `<div class="message-avatar">${avatar}</div><div class="message-content">${senderName}<div class="message-bubble">${msg.content}</div><div class="message-time">${time}</div></div>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+        if (!content || !activeChat) return;
+        if (activeChatType === "user") {
+          socket.emit("send-message", {
+            receiverId: activeChat,
+            content,
+            messageType: "text",
+          });
+        } else {
+          socket.emit("send-group-message", {
+            groupId: activeChat,
+            content,
+            messageType: "text",
+          });
+        }
+        input.value = "";
+        stopTyping();
+      }
+
+      function handleTyping() {
+        if (!activeChat) return;
+        if (activeChatType === "user") {
+          socket.emit("typing", { receiverId: activeChat });
+        } else {
+          socket.emit("group-typing", { groupId: activeChat });
+        }
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(stopTyping, 1000);
+      }
+
+      function stopTyping() {
+        if (!activeChat) return;
+        if (activeChatType === "user") {
+          socket.emit("stop-typing", { receiverId: activeChat });
+        } else {
+          socket.emit("group-stop-typing", { groupId: activeChat });
+        }
+      }
+
+      function handleKeypress(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      }
+
+      function searchItems() {
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const items =
+          activeChatType === "user"
+            ? document.querySelectorAll(".user-item")
+            : document.querySelectorAll(".group-item");
+        items.forEach((item) => {
+          item.style.display = item.textContent.toLowerCase().includes(query)
+            ? "flex"
+            : "none";
+        });
+      }
+
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
+        if (tab === "users") {
+          document.getElementById("usersTab").style.display = "block";
+          document.getElementById("groupsTab").style.display = "none";
+          document.getElementById("createGroupBtn").style.display = "none";
+        } else {
+          document.getElementById("usersTab").style.display = "none";
+          document.getElementById("groupsTab").style.display = "block";
+          document.getElementById("createGroupBtn").style.display = "block";
+          loadGroups();
+        }
+      }
+
+      function showCreateGroupModal() {
+        document.getElementById("groupModal").classList.add("active");
+        document.getElementById("groupError").textContent = "";
+        document.getElementById("groupSuccess").textContent = "";
+        const memberSelect = document.getElementById("memberSelect");
+        memberSelect.innerHTML = "";
+        users.forEach((u) => {
+          const item = document.createElement("div");
+          item.className = "member-item";
+          item.innerHTML = `<input type="checkbox" id="member_${u._id}" value="${u._id}"><label for="member_${u._id}" style="flex: 1; cursor: pointer;">${u.username}</label>`;
+          memberSelect.appendChild(item);
+        });
+      }
+
+      function closeGroupModal() {
+        document.getElementById("groupModal").classList.remove("active");
+        document.getElementById("groupName").value = "";
+      }
+
+      function createGroup() {
+        const name = document.getElementById("groupName").value.trim();
+        const checkboxes = document.querySelectorAll(
+          ".member-item input:checked"
+        );
+        const members = Array.from(checkboxes).map((cb) => cb.value);
+        const errorEl = document.getElementById("groupError");
+        const successEl = document.getElementById("groupSuccess");
+        errorEl.textContent = "";
+        successEl.textContent = "";
+        if (!name) {
+          errorEl.textContent = "Please enter a group name";
+          return;
+        }
+        if (members.length === 0) {
+          errorEl.textContent = "Please select at least one member";
+          return;
+        }
+        socket.emit("create-group", { name, members });
+        successEl.textContent = "Group created successfully!";
+        setTimeout(() => closeGroupModal(), 1500);
+      }
+
+      function leaveGroup() {
+        if (confirm("Are you sure you want to leave this group?")) {
+          socket.emit("leave-group", { groupId: activeChat });
+          document.getElementById("emptyChat").style.display = "flex";
+          document.getElementById("activeChat").style.display = "none";
+          activeChat = null;
+          loadGroups();
+        }
+      }
+
+      window.onload = async () => {
+        const savedToken = localStorage.getItem("token");
+        if (savedToken) {
+          token = savedToken;
+          try {
+            const res = await fetch(`${API_URL}/auth/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (res.ok) {
+              currentUser = data.user;
+              initializeChat();
+            } else localStorage.removeItem("token");
+          } catch (e) {
+            localStorage.removeItem("token");
+          }
+        }
+      };
+    </script>
+  </body>
+</html>
