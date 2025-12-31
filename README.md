@@ -12,10 +12,12 @@ pnpm install
 
 Create a .env file in the root directory of the project with the following content:
 
+{
 PORT=3003
 MONGODB_URI="your url here"
 JWT_SECRET=jhsdbfijlsdhoifhsilufhsdilfhiuwegh
 CLIENT_URL=http://localhost:3003
+}
 
 
 Note: Replace values with your own credentials if needed. Keep the .env file private and do not commit it to GitHub.
