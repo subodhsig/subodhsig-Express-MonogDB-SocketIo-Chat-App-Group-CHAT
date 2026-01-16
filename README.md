@@ -35,3 +35,4 @@ Open index.html in the project root.
 Use Live Server (VS Code extension) for live reloading.
 
  Your app should now be running locally at http://localhost:3003.
+server url for socket is :http://localhost:3003 
