@@ -21,6 +21,8 @@ CLIENT_URL=http://localhost:3003
 
 
 Note: Replace values with your own credentials if needed. Keep the .env file private and do not commit it to GitHub.
+THIS CHAT APP INCLUDES AUTHORIZATION TOO 
+
 
 3. Start the Development Server
 
